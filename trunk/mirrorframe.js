@@ -35,8 +35,8 @@ MirrorFrame.prototype = {
     return this.mirror.insertIntoLine(1, 1, text);
   },
 
-  getCode: function() {
-    return this.mirror.getCode();
+  getValue: function() {
+    return this.mirror.getValue();
   },
 
   setLineNumbers: function(on) {
