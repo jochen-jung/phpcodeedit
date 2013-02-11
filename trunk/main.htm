@@ -1,0 +1,661 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+<head>
+  <title>PHP Code Editor</title>
+  <meta name="description" content="PHP Code Editor - a web based interface to edit your code" />
+  <meta name="keywords" content="php, html, css, javascript, ajax, code, editor, ide, syntax highlighting, code completition, online ftp" />
+  {{if $isSSL}}<link rel="shortcut icon" href="/edit.orgapage.de/favicon.ico" />{{/if}}
+  <link rel="stylesheet" type="text/css" href="http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/resources/css/ext-all.css" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <script type="text/javascript" src="http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/adapter/ext/ext-base.js"></script>
+  <script type="text/javascript" src="http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/ext-all.js"></script>
+  <script type="text/javascript" src="codemirror/js/codemirror.js"></script>
+  <script type="text/javascript" src="scripts.js"></script>
+</head>
+
+<body>
+<div id="welcome" class="x-hide-display">
+  <img src="phpCodeEditor.png" title="PHP Code Editor IDE" alt="PHP Code Editor" vspace="2" align="right">
+  <h1>Welcome to PHP Code Editor!</h1>
+
+  <p>PHP Code Editor is a web based interface to edit your code.<br>
+    This way you can work on your project now matter where in the world you are, or on wich computer you are sitting at.<br>
+    PHP Code Editor works in almost any web browser, that supports Javascript.
+  </p>
+  <p>
+    You can either access your files directly on your FTP server, where your webpage is located at.<br>
+    Or you can upload your files to your personal directory, if you don't feel comfortable about entering your FTP credentials.<br>
+  </p>
+  <div><h2>Features:</h2>
+    <ul class="featurelist">
+      <li>FTP Access</li>
+      <li>Syntax highlighting</li>
+      <li>Code completition</li>
+      <li>Code validation</li>
+    </ul>
+  </div>
+  <p>Click the "+" button above to <a id="new_tab_link" href="#" title="Open PHP Code Editor to start editing a new file">create a new file</a>.</p>
+{{if !$userid}}
+  <p><a id="open_sign_up_link" href="#" title="Sign up for PHP Code Editor">Sign up</a> to be able to save your files online and access / edit them from any desktop you're sitting at.<br>After signing up, you will also be able to access your FTP servers.</p>
+{{/if}}
+  {{if !$isSSL}}<p>PHP Code Editor is also available via <a href="https://sslsites.de/edit.orgapage.de" title="https://sslsites.de/edit.orgapage.de">Secure connection</a></p>{{/if}}
+  <p>Any questions? Feel free to <a id="contact_us_link" href="#" title="Contact PHP Code Editor Team">contact us</a>.</p>
+</div>
+<div id="signup" class="x-hidden"></div>
+<div id="west" class="x-hide-display"></div>
+<div id="props-panel" class="x-hide-display" style="width:200px;height:200px;overflow:hidden;"></div>
+<!--
+<div id="south" class="x-hide-display">
+    <p>...still to come</p>
+</div>
+-->
+<div id="center" class="x-hide-display">
+  <div id="suggestBox">
+    <input type="text" id="suggestInput" size="20"/>
+    <div id="suggestList"></div>
+  </div>
+</div>
+<div id="uploadBox" class="x-hidden"></div>
+<div id="searchBox" class="x-hidden"></div>
+<div id="ftpwinBox" class="x-hidden"></div>
+<div id="liwinBox" class="x-hidden"></div>
+<div id="fi-basic" class="x-hidden"></div>
+<div id="fi-basic-btn" class="x-hidden"></div>
+
+<script type="text/javascript">
+function saveClick(btn){
+{{if !$userid}}
+  Ext.MessageBox.alert('Not logged in', 'Saving files is available to logged in users only.<br>Please choose "Download" instead, or login');
+{{else}}
+  var actTab = parseInt(tabs.getActiveTab().id.substr(3, 3), 10);
+  if (isNaN(actTab) || actTab <= 1) {
+    Ext.MessageBox.alert('No Tab selected', 'There is no current code tab selected.');
+  } else {
+    var fileName = tabFiles[actTab];
+    var denyoverwrite = 0;
+    if (fileName == '') {
+      fileName = prompt("Enter file name:", 'new_file.txt');
+      denyoverwrite = 1;
+    }
+    if (fileName) {
+      Ext.Ajax.request({
+        url : 'ajax.php' ,
+        params : { a: 'saveFile', path: fileName, code: codeEditor[actTab].getCode(), denyoverwrite: denyoverwrite },
+        method: 'POST',
+        success: function (result, request) {
+          var r = Ext.util.JSON.decode(result.responseText);
+          if (r.success) {
+            Ext.MessageBox.alert('File saved', r.msg);
+            tree.getRootNode().reload();
+            actTab = parseInt(tabs.getActiveTab().id.substr(3, 3), 10);
+            tabFiles[actTab] = fileName;
+            if (fileName.lastIndexOf('/') !== false) fileName2 = fileName.subst(fileName.lastIndexOf('/') + 1, fileName.length);
+            else fileName2 = fileName;
+            tabs.getActiveTab().setTitle(fileName2);
+            return fileName;
+          } else Ext.MessageBox.alert('Failed saving file', r.msg);
+        },
+        failure: function (result, request) {
+          var r = Ext.util.JSON.decode(result.responseText);
+          Ext.MessageBox.alert('Failed saving file', r.msg);
+        }
+      });
+    }
+  }
+{{/if}}
+}
+
+Ext.onReady(function(){
+  Ext.BLANK_IMAGE_URL = 'extjs/resources/images/default/s.gif';
+  //Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
+  Ext.QuickTips.init();
+  {{$alertMsg}}
+
+  // New tab button
+  Ext.ux.AddTabButton = (function() {
+    function onTabPanelRender() {
+      this.addTab = this.itemTpl.insertBefore(this.edge, {
+        id: this.id + 'addTabButton',
+        cls: 'add-tab',
+        text: this.addTabText || '&#160',
+        iconCls: ''
+      }, true);
+      this.addTab.child('em.x-tab-left').setStyle('padding-right', '6px');
+      this.addTab.child('a.x-tab-right').setStyle('padding-left', '6px');
+      tmpvar = new Ext.ToolTip({
+        target: this.addTab,
+        bodyCfg: {
+          html: 'Add new tab'
+        }
+      });
+      this.addTab.on({
+        mousedown: stopEvent,
+        click: addTab,
+        scope: this
+      });
+    }
+
+    function stopEvent(e) {
+      e.stopEvent();
+    }
+
+    return {
+      init: function(tp) {
+        if (tp instanceof Ext.TabPanel) {
+          tp.onRender = tp.onRender.createSequence(onTabPanelRender);
+        }
+      }
+    };
+  })();
+
+  viewport = new Ext.Viewport({
+    layout: 'border',
+    items: [
+    new Ext.BoxComponent({
+      region: 'north', height: 28,
+      autoEl: {
+        tag: 'div', id: 'north',
+        children: [{
+          tag: 'div', id: 'northLogo', html: '<img src="phpCodeEditorIcon.png" title="PHP Code Editor" width="16" height="16"> PHP Code Editor'
+        }]
+      }
+    }), {
+/*    region: 'south', title: 'Information', contentEl: 'south', split: true,
+      height: 100, minSize: 100, maxSize: 200, collapsible: true, collapsed: true, margins: '0 0 0 0'
+    }, { */
+      region: 'west', id: 'west-panel',
+{{if !$userid}}
+      title: 'Login', iconCls: 'door_in',
+{{else}}
+      title: 'Navigation', iconCls: 'folder2',
+{{/if}}
+      split: true, width: 200, minSize: 175, maxSize: 400, collapsible: true, autoScroll: true, margins: '0 0 0 5',
+      layout: { type: 'anchor', animate: true },
+      items: [
+{{if !$userid}}
+        {
+          title: '', border: false, padding: 8,
+          items: fp = new Ext.FormPanel({
+            frame: false, autoHeight: true, labelWidth: 30, border: false, buttonAlign: 'left',
+            listeners:{
+              "render":function() {
+                var map = new Ext.KeyMap(this.id, {
+                  key: Ext.EventObject.ENTER,
+                  fn: function() {
+                    if (this.getForm().isValid()) {
+                      post('index.php', { email: this.getForm().findField('email').getValue(), password: this.getForm().findField('password').getValue()}, false, '');
+                    }
+                  },
+                  scope: this
+                });
+              }
+            },
+            defaults: {
+              anchor: '85%', allowBlank: false, msgTarget: 'qtip', xtype: 'textfield', autoWidth: true
+            },
+            defaultType: 'textfield',
+            items: [
+              { name: 'email', fieldLabel: 'Email', emptyText: 'mail@host.com' },
+              { name: 'password', inputType: 'password', fieldLabel: 'Pass' }
+            ],
+            buttons: [{
+              text: 'Login', iconCls: 'door_in',
+              handler: function(){
+                if (fp.getForm().isValid()) {
+                  post('index.php', { email: fp.getForm().findField('email').getValue(), password: fp.getForm().findField('password').getValue()}, false, '');
+                }
+              }
+            }, {
+              text: 'Sign up', iconCls: 'user_add',
+              handler: function() { showSignupWindow(); }
+            }]
+          })
+        },
+{{/if}}
+{{if $userid}}
+        // Navi menu bar
+        tb_nav = new Ext.Toolbar({
+          items: [
+            { text: 'Add FTP', iconCls: 'server_add', handler: addFTPClick, tooltip: { title:'Add FTP', text:'Link a new FTP connection to your account' } }
+          ]
+        }),
+        tree_ftp = new Ext.tree.TreePanel({
+          contentEl: 'west', title: '', border: false, useArrows: true, autoScroll: false, animate: true, enableDD: true, containerScroll: true,
+          dataUrl: 'ftp-get.php',
+          root: { nodeType: 'async', text: 'FTP files', draggable: false, id: '/' },
+          listeners: {
+            click: function(n) {
+              if (n.attributes.leaf) {
+                var fo = addTabDo(n.attributes.text);
+                openFTPCodeFile(fo, n.attributes.id);
+              }
+            }
+          }
+        }),
+{{/if}}
+        tree = new Ext.tree.TreePanel({
+          contentEl: 'west', border: false, iconCls: 'folder2', useArrows: true, autoScroll: false, animate: true, enableDD: true, containerScroll: true,
+          {{if $userid}} title: '', {{else}} title: 'Files (Log in to see yours)', {{/if}}
+          dataUrl: 'get-files.php',
+          root: {
+            nodeType: 'async',
+            {{if $userid}} text: 'My files', {{else}} text: 'Demo files', {{/if}}
+            draggable: false, id: '/'
+          },
+          listeners: {
+            click: function(n) {
+              if (n.attributes.leaf) {
+                var fo = addTabDo(n.attributes.text);
+                openCodeFile(fo, n.attributes.id);
+              }
+            }
+          }
+        })
+        ]
+    },
+    tabs = new Ext.TabPanel({
+      region: 'center', contentEl: 'center', deferredRender: false, activeTab: 0,
+      plugins: [ Ext.ux.AddTabButton ],
+      items: [
+        { contentEl: 'welcome', title: 'Welcome', padding: 16, closable: true, autoScroll: true }
+      ]
+    })]
+  });
+
+  function fileDrop(node) {
+    if (node.target.id == '/') return false;
+
+    var target = '';
+    if (node.target.leaf) target = node.target.id.substr(0, node.target.id.lastIndexOf('/')) +'/';
+    else target = node.target.id +'/';
+
+    // Add filename to new dir
+    var startpos = 0;
+    if (node.dropNode.id.lastIndexOf('/') > -1) startpos = node.dropNode.id.lastIndexOf('/') + 1;
+    var old_filename = node.dropNode.id.substr(startpos, node.dropNode.id.length);
+    if (target.substr(target.length - 1, 1) != '/') target += '/';
+    target += old_filename;
+
+    RenameRequest(node.dropNode.id, target);
+    return true;
+  }
+
+  tree.on('beforenodedrop', fileDrop);
+  tree.on('contextmenu', function(node){
+    if (node.id != '/') {
+      path = node.id;
+      // File
+      if (node.leaf == true) {
+        var contextMenu2F = new Ext.menu.Menu({
+          style: {
+            overflow: 'visible'
+          },
+          items: [{
+            text: 'Open file',
+            iconCls: 'script_go',
+            handler: openFileClick.createDelegate(this, node.id, true)
+          }, {
+            text: 'Rename file',
+            iconCls: 'script_edit',
+            handler: renameFileClick.createDelegate(this, node.id, true)
+          }, {
+            text: 'Delete file',
+            iconCls: 'script_delete',
+            handler: deleteFileClick.createDelegate(this, node.id, true)
+          }]
+        });
+        contextMenu2F.show(node.ui.getAnchor());
+      // Directory
+      } else {
+        var contextMenu2D = new Ext.menu.Menu({
+          style: {
+            overflow: 'visible'
+          },
+          items: [{
+            text: 'Rename directory',
+            iconCls: 'script_edit',
+            handler: renameFileClick.createDelegate(this, node.id, true)
+          }/*, {
+            text: 'Delete directory',
+            iconCls: 'script_delete',
+            handler: todoClick
+          }*/]
+        });
+        contextMenu2D.show(node.ui.getAnchor());
+      }
+    }
+  });
+
+{{if $userid}}
+  tree_ftp.on('beforenodedrop', fileDrop);
+  tree_ftp.on('contextmenu', function(node){
+    if (node.id != '/') {
+      // FTP Server
+      var ftpID = node.id.substr(0, node.id.indexOf(':'));
+      var path = node.id.substr(node.id.indexOf(':') + 1, node.id.length);
+      if (path == '' || path == '/') {
+        var contextMenuS = new Ext.menu.Menu({
+          style: {
+            overflow: 'visible'
+          },
+          items: [{
+            text: 'Edit',
+            iconCls: 'server_edit',
+            handler: addFTPClick.createDelegate(this, ftpID, true)
+          }, {
+            text: 'Remove',
+            iconCls: 'server_delete',
+            handler: deleteFTPClick.createDelegate(this, ftpID, true)
+          }]
+        });
+        contextMenuS.show(node.ui.getAnchor());
+      } else {
+        // FTP File
+        if (node.leaf == true) {
+          var contextMenuF = new Ext.menu.Menu({
+            style: {
+              overflow: 'visible'
+            },
+            items: [{
+              text: 'Open file',
+              iconCls: 'script_go',
+              handler: openFileClick.createDelegate(this, node.id, true)
+            }, {
+              text: 'Rename file',
+              iconCls: 'script_edit',
+              handler: renameFileClick.createDelegate(this, node.id, true)
+            }, {
+              text: 'Delete file',
+              iconCls: 'script_delete',
+              handler: deleteFTPFileClick.createDelegate(this, node.id, true)
+            }]
+          });
+          contextMenuF.show(node.ui.getAnchor());
+        // FTP Directory
+        } else {
+          var contextMenuD = new Ext.menu.Menu({
+            style: {
+              overflow: 'visible'
+            },
+            items: [{
+              text: 'Rename directory',
+              iconCls: 'script_edit',
+              handler: renameFileClick.createDelegate(this, node.id, true)
+            }/*, {
+              text: 'Delete directory',
+              iconCls: 'script_delete',
+              handler: todoClick
+            }*/]
+          });
+          contextMenuD.show(node.ui.getAnchor());
+        }
+      }
+    }
+  });
+{{/if}}
+
+  function hashCheckerClick(btn){
+    if (!searchwin) {
+      searchwin = new Ext.Window({
+        applyTo:'searchBox', layout:'fit', width:550, autoHeight: true, title: 'Generate hash codes', closeAction:'hide', plain: true,
+        items: fp = new Ext.FormPanel({
+          width: 400, frame: false, autoHeight: true, bodyStyle: 'padding: 10px 10px 0 10px;', labelWidth: 100, defaultType: 'textfield',
+          defaults: { anchor: '95%', allowBlank: false, msgTarget: 'side' },
+          items: [{
+            fieldLabel: 'Plain', name: 'plain', xtype: 'textfield', allowBlank: false,
+            listeners: {
+              'change': function() {
+                getHashCode(fp);
+              }
+            }
+          }, {
+            xtype: 'combo', mode: 'local', value: 'md5', triggerAction: 'all', forceSelection: true, editable: false, fieldLabel: 'Hash type',
+            name: 'type', hiddenName: 'type', displayField: 'value', valueField: 'name',
+            store: new Ext.data.JsonStore({
+              fields: ['name', 'value'],
+              data: [{{foreach key=key item=val from=$hash_algos}}{name : '{{$val}}', value: '{{$val|capitalize:true}}'}{{if !$last}}, {{/if}}{{/foreach}}]
+            }),
+            listeners: {
+              'select': function() {
+                getHashCode(fp);
+              }
+            }
+          }, {
+            fieldLabel: 'Hash', name: 'hash', xtype: 'textfield', readOnly: true, allowBlank: true
+          }]
+        })
+      });
+    }
+    searchwin.show(this);
+  }
+
+  // Menu bar
+  tb = new Ext.Toolbar().render('north');
+
+  tb.add(new Ext.Toolbar.SplitButton({
+    {{if $userid}} text: 'Save', iconCls: 'script_save', id: 'save', handler: saveClick, disabled: true,
+    {{else}} text: 'Download', iconCls: 'disk', id: 'save', handler: downloadClick, disabled: true,
+    {{/if}}
+    tooltip: {text:'Click to save current file', title:'Save'},
+    menu: {
+      id: 'saveMenu',
+      style: { overflow: 'visible' },
+      items: [
+        { text: 'Save online <span class="accessKey">(Ctrl+S)</span>', iconCls: 'script_save', handler: saveClick },
+        { text: 'Download', iconCls: 'disk', handler: downloadClick }
+      ]
+    }
+  }), {
+    text: 'Open', iconCls: 'script_add', handler: openClick
+  }, '-', {
+    text: 'Search', id: 'search', iconCls: 'find', disabled: true,
+    menu: {
+      items: [
+        { text: 'Search / Replace <span class="accessKey">(Ctrl+F)</span>', iconCls: 'page_white_find', handler: searchClick },
+        { text: 'Find next <span class="accessKey">(F3)</span>', iconCls: 'page_white_find', handler: findClick }
+      ]
+    }
+  }, {
+    text: 'Insert',
+    id: 'insert',
+    iconCls: 'table_row_insert',
+    disabled: true,
+    menu: {
+      items: [{
+        text: 'Color code', iconCls: 'color_swatch',
+        menu: {
+          items: [
+            new Ext.ColorPalette({
+              listeners: {
+                select: function(cp, color){
+                  insertCode('#'+ color);
+                }
+              }
+            })/*, '-', {
+              text: 'More Colors...', iconCls: 'color_wheel', handler: todoClick
+            }*/
+          ]
+        }
+      }, {
+        text: 'Lorem ipsum', iconCls: 'script', handler: LoremIpsumClick
+      }]
+    }
+  }, {
+    text: 'Tools',
+    iconCls: 'wrench_orange',
+    menu: {
+      items: [{
+        text: 'Validate code', iconCls: 'script_code_red',
+        menu: {
+          items: [
+            { text: 'Validate HTML', iconCls: 'html_valid', handler: validateHTMLClick },
+            { text: 'Validate CSS', iconCls: 'css_valid', handler: validateCSSClick },
+            { text: 'Check JavaScript syntax', iconCls: 'script_error', handler: validateJSClick }
+          ]
+        }
+      }, {
+        text: 'Minimize code', iconCls: 'script_lightning',
+        menu: {
+          items: [
+           { text: 'Minimize JavaScript', iconCls: 'script_lightning', handler: minimizeJSClick }
+          ]
+        }
+      }, {
+        text: 'Hashcode checker', iconCls: 'textfield_key', handler: hashCheckerClick
+      }]
+    }
+  }, {
+    text: 'Settings',
+    iconCls: 'wrench',
+    menu: {
+      items: [
+        /* { text: 'Use spaces as tabs', checked: true, checkHandler: spacesAsTabsClick },
+        { text: 'Perform spellcheck', checked: false, checkHandler: enableSpellcheckClick },
+        { text: 'Auto match parenses', checked: true, checkHandler: autoMatchParensesClick }, */
+        { text: 'Show line numbers', checked: true, checkHandler: showLineNumbersClick }
+      ]
+    }
+  }, '-', {
+{{if $userid}}
+    text: '{{$firstname}} {{$lastname}}', iconCls: 'user',
+    menu: {
+      items: [
+        { text: 'Edit', iconCls: 'user_edit', handler: showSignupWindow },
+        /* { text: 'Change Password', iconCls: 'key', handler: todoClick }, */
+        { text: 'Logout', iconCls: 'door_out', handler: logoutClick }
+      ]
+    }
+  }, '-', {
+{{/if}}
+    text: 'Help', iconCls: 'information',
+    menu: {
+      items: [
+        { text: 'About', iconCls: 'information', handler: aboutClick },
+        { text: 'Wiki Documentation', iconCls: 'layout', handler: wikiClick },
+        { text: 'Report Bug / Feature', iconCls: 'bug', handler: bugreportClick },
+        { text: 'Contact us', iconCls: 'telephone_go', handler: contactUsClick }
+      ]
+    }
+  });
+  tb.doLayout();
+
+  {{if $userid}} tree_ftp.getRootNode().expand(); {{/if}}
+  tree.getRootNode().expand();
+
+
+  function showSignupWindow() {
+    if(!win){
+      win = new Ext.Window({
+        applyTo: 'signup', layout: 'fit', width: 400, autoHeight: true, closeAction: 'hide', plain: true,
+{{if !$userid}}
+        title: 'Sign up',
+{{else}}
+        title: 'Change my data',
+{{/if}}
+        items: fp_su = new Ext.FormPanel({
+          labelWidth: 75, frame: false, bodyStyle: 'padding:5px 5px 0', width: 350, autoHeight: true, defaultType: 'textfield',
+          defaults: {
+            msgTarget: 'side',
+            width: 230
+          },
+          items: [{
+{{if $userid}}
+              xtype: 'hidden', fieldLabel: 'ID', name: 'userid', value: '{{$userid}}', allowBlank: false
+            }, {
+{{/if}}
+              fieldLabel: 'First Name', name: 'first',
+{{if $userid}}
+              value: '{{$firstname}}',
+{{/if}}
+              allowBlank: false
+            },{
+              fieldLabel: 'Last Name',
+              name: 'last',
+{{if $userid}}
+              value: '{{$lastname}}',
+{{/if}}
+              allowBlank: false
+            },{
+              fieldLabel: 'Email',
+              name: 'email',
+              vtype: 'email',
+{{if $userid}}
+              value: '{{$email}}',
+{{/if}}
+              allowBlank: false
+{{if !$userid}}
+            }, {
+              inputType: 'password', fieldLabel: 'Password', name: 'password', allowBlank: false
+            }, {
+              inputType: 'password', fieldLabel: 'Password (verification)', name: 'password2', allowBlank: false
+{{/if}}
+            }
+          ],
+
+          buttons: [{
+            text: 'Save',
+            handler: function(){
+              if(fp_su.getForm().isValid()){
+                fp_su.getForm().submit({
+                  url: 'user-signup.php',
+                  waitMsg: 'Signing up...',
+                  success: function(fp_su, o){
+{{if $userid}}
+                    Ext.MessageBox.alert('Success', 'User has been edited.<br>Changes will take effekt after next login');
+{{else}}
+                    Ext.MessageBox.alert('Success', 'User has been created');
+{{/if}}
+                    win.hide();
+                  },
+                  failure: function (fp_su, o) {
+                    Ext.MessageBox.alert('Signup failed', 'Error: '+ o.failureType);
+                  }
+                });
+              }
+            }
+          },{
+            text: 'Cancel',
+            handler: function(){
+              win.hide();
+            }
+          }]
+        })
+      });
+    }
+    win.show(this);
+  }
+
+{{if !$userid}}
+  Ext.get("open_sign_up_link").on('click', function() {
+    showSignupWindow();
+  });
+{{/if}}
+  Ext.get("new_tab_link").on('click', function() {
+    addTab();
+  });
+  Ext.get("contact_us_link").on('click', function() {
+    contactUsClick();
+  });
+
+  var addThisCode = document.createElement('div');
+  addThisCode.setAttribute('class', 'addthis_toolbox addthis_default_style');
+  addThisCode.innerHTML = '<a href="http{{if $isSSL}}s{{/if}}://www.addthis.com/bookmark.php?v=250&amp;username=xa-4bfe42d77f137dd4" class="addthis_button_compact">Share link</a>'
+  Ext.getDom("welcome").appendChild(addThisCode);
+  include('http{{if $isSSL}}s{{/if}}://s7.addthis.com/js/250/addthis_widget.js#username=xa-4bfe42d77f137dd4', 'AddThisField');
+   viewport.on('AddThisFieldIncluded', function() {
+  });
+});
+
+/* Analytics */
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-2837602-6']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+</body>
+</html>
