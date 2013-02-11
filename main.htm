@@ -106,7 +106,7 @@ function saveClick(btn){
 }
 
 Ext.onReady(function(){
-  Ext.BLANK_IMAGE_URL = 'extjs/resources/images/default/s.gif';
+  Ext.BLANK_IMAGE_URL = 'http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/resources/images/default/s.gif';
   //Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
   Ext.QuickTips.init();
   {{$alertMsg}}

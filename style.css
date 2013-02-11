@@ -47,7 +47,7 @@ ul.featurelist li {
 }
 
 div.x-tab-strip-wrap .add-tab a span.x-tab-strip-inner {
-    background: url(extjs/resources/images/default/dd/drop-add.gif) no-repeat center center;
+    background: url(https://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/resources/images/default/dd/drop-add.gif) no-repeat center center;
     width: 20px;
 }
 
@@ -58,15 +58,15 @@ div.x-tab-strip-wrap .add-tab a span.x-tab-strip-inner {
 }
 
 .calendar {
-    background-image:url(extjs/resources/images/default/shared/calendar.gif) !important;
+    background-image:url(https://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/resources/images/default/shared/calendar.gif) !important;
 }
 
 .blist {
-    background-image: url(extjs/examples/menu/list-items.gif) !important;
+    background-image: url(https://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/examples/menu/list-items.gif) !important;
 }
 
 .bmenu {
-    background-image: url(extjs/examples/menu/menu-show.gif) !important;
+    background-image: url(https://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/examples/menu/menu-show.gif) !important;
 }
 
 .menu-title{
@@ -82,16 +82,16 @@ div.x-tab-strip-wrap .add-tab a span.x-tab-strip-inner {
 }
 
 .user {
-    background-image:url(extjs/examples/shared/icons/fam/user.gif) !important
+    background-image:url(https://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/examples/shared/icons/fam/user.gif) !important
 }
 .edit {
-    background-image:url(extjs/examples/desktop/images/im32x32.gif) !important;
+    background-image:url(https://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/examples/desktop/images/im32x32.gif) !important;
 }
 .add {
-    background-image:url(extjs/examples/button/images/add.gif) !important;
+    background-image:url(https://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/examples/button/images/add.gif) !important;
 }
 .upload-icon {
-  background:url(extjs/examples/shared/icons/fam/image_add.png) no-repeat 0 0 !important;
+  background:url(https://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/examples/shared/icons/fam/image_add.png) no-repeat 0 0 !important;
 }
 
 /* FileUploadField */
@@ -122,7 +122,7 @@ div.x-tab-strip-wrap .add-tab a span.x-tab-strip-inner {
 
 
 .x-form-invalid-icon {
-  background-image:url(extjs/resources/images/default/form/exclamation.gif) !important;
+  background-image:url(https://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/resources/images/default/form/exclamation.gif) !important;
 }
 
 /* Own */
