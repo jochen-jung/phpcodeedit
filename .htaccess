@@ -1,0 +1,6 @@
+<FilesMatch "\.(gif|jpg|jpeg|png|ico)$">
+  # FileETag -INode MTime Size
+  # Header unset Last-Modified
+  Header set Cache-Control "max-age=307584000, public"
+  Header set Expires "Thu, 31 Dec 2020 20:00:00 GMT"
+</FilesMatch>
