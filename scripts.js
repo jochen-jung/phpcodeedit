@@ -233,48 +233,46 @@ function codeEditorGrabKeysFilter(keyCode, event) {
 function addCodeToTab(filesOpen, code) {
   var parserfile = '';
   var stylesheet = '';
+  var codemirrorMode = 'php';
   switch (fileTypes[filesOpen]) {
     case 'htm':
     case 'html':
-      parserfile = ["parsexml.js", "parsecss.js", "tokenizejavascript.js", "parsejavascript.js", "parsehtmlmixed.js"];
-      stylesheet = ["codemirror/css/xmlcolors.css", "codemirror/css/jscolors.css", "codemirror/css/csscolors.css"];
+      codemirrorMode: 'text/html';
     break;
     case 'js':
-      parserfile = ["tokenizejavascript.js", "parsejavascript.js"];
-      stylesheet = 'codemirror/css/jscolors.css';
+      codemirrorMode: 'javascript';
     break;
     case 'css':
-      parserfile = 'parsecss.js';
-      stylesheet = 'codemirror/css/csscolors.css';
+      codemirrorMode: 'css';
     break;
     case 'xml':
-      parserfile = 'parsexml.js';
-      stylesheet = 'codemirror/css/xmlcolors.css';
+      codemirrorMode: 'xml';
     break;
     case 'sql':
-      parserfile = '../contrib/sql/js/parsesql.js';
-      stylesheet = 'codemirror/css/sqlcolors.css';
+      codemirrorMode: 'sql';
     break;
     case 'py':
-      parserfile = '../contrib/python/js/parsepython.js';
-      stylesheet = 'codemirror/contrib/python/css/pythoncolors.css';
+      codemirrorMode: 'python';
     break;
-    default:
     case 'php':
-      parserfile = ["parsexml.js", "parsecss.js", "tokenizejavascript.js", "parsejavascript.js", "../contrib/php/js/tokenizephp.js", "../contrib/php/js/parsephp.js",
-        "../contrib/php/js/parsephphtmlmixed.js"];
-      stylesheet = ["codemirror/css/xmlcolors.css", "codemirror/css/jscolors.css", "codemirror/css/csscolors.css", "codemirror/contrib/php/css/phpcolors.css"];
+    default:
+      codemirrorMode: 'php';
+      //parserfile = ["parsexml.js", "parsecss.js", "tokenizejavascript.js", "parsejavascript.js", "../contrib/php/js/tokenizephp.js", "../contrib/php/js/parsephp.js",
+      //  "../contrib/php/js/parsephphtmlmixed.js"];
+      //stylesheet = ["codemirror/css/xmlcolors.css", "codemirror/css/jscolors.css", "codemirror/css/csscolors.css", "codemirror/contrib/php/css/phpcolors.css"];
     break;
   }
 
   var elem = 'inputfield' + filesOpen;
-  codeEditor[filesOpen] = new CodeMirror(CodeMirror.replace(document.getElementById(elem)), {
+  //document.getElementById(elem).innerText = code;
+  codeEditor[filesOpen] = new CodeMirror.fromTextArea(document.getElementById(elem), {
     width: "100%",
     height: "100%",
-    content: code,
-    parserfile: parserfile,
-    stylesheet: stylesheet,
-    path: "codemirror/js/",
+    /*setValue: code,*/
+    /*parserfile: parserfile,
+    stylesheet: stylesheet,*/
+    mode: codemirrorMode,
+    path: "codemirror/lib/",
     continuousScanning: 500,
     undoDepth: 50,
     undoDelay: 800,
@@ -297,6 +295,7 @@ function addCodeToTab(filesOpen, code) {
     saveFunction: saveClick,
     onChange: null
   });
+  codeEditor[filesOpen].setValue(code);
 
   // codeEditor onload
   interval = window.setInterval(function() {
@@ -453,14 +452,14 @@ function bugreportClick(btn) {
 function validateHTMLClick(btn) {
   var actTab = parseInt(tabs.getActiveTab().id.substr(3, 3), 10);
   post('http://validator.w3.org/check', {
-    fragment: codeEditor[actTab].getCode()
+    fragment: codeEditor[actTab].getValue()
   }, true, '');
 }
 
 function validateCSSClick(btn) {
   var actTab = parseInt(tabs.getActiveTab().id.substr(3, 3), 10);
   post('http://jigsaw.w3.org/css-validator/validator', {
-    text: codeEditor[actTab].getCode()
+    text: codeEditor[actTab].getValue()
   }, true, 'GET');
 }
 
@@ -468,7 +467,7 @@ function validateJSClick(btn) {
   var actTab = parseInt(tabs.getActiveTab().id.substr(3, 3), 10);
   // Alternative: http://jslint.com
   post('http://www.javascriptlint.com/online_lint.php', {
-    script: codeEditor[actTab].getCode()
+    script: codeEditor[actTab].getValue()
   }, true, '');
 }
 
@@ -478,13 +477,13 @@ function minimizeJSClick(btn) {
     compilation_level: 'WHITESPACE_ONLY',
     output_format: 'text',
     output_info: 'compiled_code',
-    js_code: codeEditor[actTab].getCode()
+    js_code: codeEditor[actTab].getValue()
   }, true, '');
 
 /*
   Ext.Ajax.request({
     url : 'http://closure-compiler.appspot.com/compile',
-    params : { compilation_level: 'WHITESPACE_ONLY', output_format: 'text', output_info: 'compiled_code', js_code: codeEditor[actTab].getCode() },
+    params : { compilation_level: 'WHITESPACE_ONLY', output_format: 'text', output_info: 'compiled_code', js_code: codeEditor[actTab].getValue() },
     method: 'POST',
     success: function (result, request) {
       var title = tabFiles[actTab] + '_min';
@@ -561,7 +560,7 @@ function aboutClick(btn) {
     '<br><br><br>Special thanks to:' +
     '<br><br><a href="http://www.smarty.net/" target="_blank">Smarty</a> (PHP Template Engine)' +
     '<br><a href="http://www.extjs.com/" target="_blank">ExtJS</a> (JavaScript Framework)' +
-    '<br><a href="http://marijn.haverbeke.nl/codemirror/" target="_blank">Codemirror</a> (JavaScript Code Highlighter)' +
+    '<br><a href="http://codemirror.net/" target="_blank">Codemirror</a> (JavaScript Code Highlighter)' +
     '<br><a href="http://www.famfamfam.com/" target="_blank">Famfamfam</a> (Iconset)'
     );
 }
@@ -631,7 +630,7 @@ function downloadClick(btn){
     if (fileName) {
       post('download-file.php', {
         path: fileName,
-        code: codeEditor[actTab].getCode()
+        code: codeEditor[actTab].getValue()
       }, false, '');
     }
   }

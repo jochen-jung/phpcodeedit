@@ -9,7 +9,9 @@
   <link rel="stylesheet" type="text/css" href="style.css" />
   <script type="text/javascript" src="http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/adapter/ext/ext-base.js"></script>
   <script type="text/javascript" src="http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/ext-all.js"></script>
-  <script type="text/javascript" src="codemirror/js/codemirror.js"></script>
+  <script src="codemirror/lib/codemirror.js"></script>
+  <link rel="stylesheet" href="codemirror/lib/codemirror.css">
+  <script src="codemirror/mode/javascript/javascript.js"></script>
   <script type="text/javascript" src="scripts.js"></script>
 </head>
 
@@ -80,7 +82,7 @@ function saveClick(btn){
     if (fileName) {
       Ext.Ajax.request({
         url : 'ajax.php' ,
-        params : { a: 'saveFile', path: fileName, code: codeEditor[actTab].getCode(), denyoverwrite: denyoverwrite },
+        params : { a: 'saveFile', path: fileName, code: codeEditor[actTab].getValue(), denyoverwrite: denyoverwrite },
         method: 'POST',
         success: function (result, request) {
           var r = Ext.util.JSON.decode(result.responseText);
