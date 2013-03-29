@@ -1,0 +1,4 @@
+smarty
+fam_icons
+codemirror
+config.php
