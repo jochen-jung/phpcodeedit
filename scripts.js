@@ -36,9 +36,17 @@ function getScrollHeight() {
 }
 
 function insertCode(code) {
+  // var actTab = tabs.getActiveTab().id.substr(3, 3);
+  // obj = codeEditor[actTab].cursorPosition();
+  // codeEditor[actTab].insertIntoLine(codeEditor[actTab].cursorLine(), obj.character, code);
+
   var actTab = tabs.getActiveTab().id.substr(3, 3);
-  obj = codeEditor[actTab].cursorPosition();
-  codeEditor[actTab].insertIntoLine(codeEditor[actTab].cursorLine(), obj.character, code);
+  obj = codeEditor[actTab].getCursor();
+
+  var line = codeEditor[actTab].getLine(obj.line);
+  var output = [line.slice(0, obj.ch), code, line.slice(obj.ch)].join('');
+
+  codeEditor[actTab].setLine(obj.line, output);
 }
 
 function post(URL, PARAMS, new_win, method) {
@@ -138,9 +146,9 @@ function getHashCode(fp) {
 function codeSuggest() {
   var actTab = parseInt(tabs.getActiveTab().id.substr(3, 3), 10);
   if (fileTypes[actTab] == 'php' || fileTypes[actTab] == 'css') {
-    var obj = codeEditor[actTab].cursorPosition();
-    var cur_line = codeEditor[actTab].lineContent(obj.line);
-    var till_cursor = cur_line.substr(0, obj.character);
+    var obj = codeEditor[actTab].getCursor();
+    var cur_line = codeEditor[actTab].getLine(obj.line);
+    var till_cursor = cur_line.substr(0, obj.ch);
     for (var i = till_cursor.length - 1; i >= 0; i--) {
       var cur_char = till_cursor[i];
       if (cur_char.search(/(\W)/) != -1) { // \W = [^a-zA-Z0-9_]
@@ -148,14 +156,13 @@ function codeSuggest() {
       }
     }
     if (till_cursor.length >= 0) i++;
-    till_cursor = till_cursor.substr(i, obj.character);
+    till_cursor = till_cursor.substr(i, obj.ch);
     var suggestBox = Ext.getDom('suggestBox');
 
     //var h = Ext.getDom('center').pageYOffset || Ext.getDom('center').scrollTop
-    
     if (till_cursor.length >= 2) {
       suggestBox.style.display = 'block';
-      suggestBox.style.top = (34 + codeEditor[actTab].lineNumber(obj.line) * 16) + 'px';
+      suggestBox.style.top = (34 + codeEditor[actTab].getLine(obj.line) * 16) + 'px';
       suggestBox.style.left = (40 + i * 8) + 'px';
 
       var suggestInput = Ext.getDom('suggestInput');
@@ -181,7 +188,7 @@ function codeSuggest() {
               insertCode(code);
               suggestBox.style.display = 'none';
               codeEditor[actTab].focus();
-              codeEditor[actTab].selectLines(obj.line, obj.character + code.length);
+              codeEditor[actTab].setSelection(obj.line, obj.character + code.length);
             });
           });
         },
@@ -198,65 +205,33 @@ function onCodeChange(cursor) {
   // Old. Now ctl + Space
 }
 
-function codeEditorGrabKeys(event) {
-  // alert(event.keyCode);
-}
-
-function codeEditorGrabKeysFilter(keyCode, event) {
-  // event.shiftKey event.ctrlKey event.metaKey event.altKey
-  if (event.ctrlKey && keyCode == 70) { // Ctrl + F
-    searchClick('');
-    return true;
-  }
-  if (event.ctrlKey && keyCode == 32) { // Ctrl + Space
-    suggestMode = true;
-    codeSuggest();
-    return true;
-  }
-  if (suggestMode && keyCode == 27) { // Escape
-    suggestBox.style.display = 'none';
-    suggestMode = false;
-    return true;
-  }
-  if (suggestMode && keyCode == 40) { // Down arrow   
-    // TODO: Select next suggest item
-    return true;
-  }
-  if (keyCode == 114 && event.character != 'r') { // F3
-    findClick('');
-    return true;
-  }
-  
-  return false;
-}
-
 function addCodeToTab(filesOpen, code) {
   var parserfile = '';
   var stylesheet = '';
-  var codemirrorMode = 'php';
+  var codemirrorMode = 'application/x-httpd-php';
   switch (fileTypes[filesOpen]) {
     case 'htm':
     case 'html':
-      codemirrorMode: 'text/html';
+      codemirrorMode = 'text/html';
     break;
     case 'js':
-      codemirrorMode: 'javascript';
+      codemirrorMode = 'javascript';
     break;
     case 'css':
-      codemirrorMode: 'css';
+      codemirrorMode = 'text/css';
     break;
     case 'xml':
-      codemirrorMode: 'xml';
+      codemirrorMode = 'xml';
     break;
     case 'sql':
-      codemirrorMode: 'sql';
+      codemirrorMode = 'sql';
     break;
     case 'py':
-      codemirrorMode: 'python';
+      codemirrorMode = 'python';
     break;
     case 'php':
     default:
-      codemirrorMode: 'php';
+      codemirrorMode: 'application/x-httpd-php';
       //codemirrorMode: 'application/x-httpd-php';
       //parserfile = ["parsexml.js", "parsecss.js", "tokenizejavascript.js", "parsejavascript.js", "../contrib/php/js/tokenizephp.js", "../contrib/php/js/parsephp.js",
       //  "../contrib/php/js/parsephphtmlmixed.js"];
@@ -271,8 +246,15 @@ function addCodeToTab(filesOpen, code) {
     undoDepth: 50,
     lineWrapping: true,
     lineNumbers: showLineNumbers,
-    cursorActivity: onCodeChange,
-    indentUnit: 2
+    /*cursorActivity: onCodeChange,*/
+    indentUnit: 2,
+    extraKeys: {
+      "Ctrl-F": function(instance) { searchClick(''); },
+      "Ctrl-Space": function(instance) { suggestMode = true; codeSuggest(); return false; },
+      "Ctrl-Esc": function(instance) { suggestBox.style.display = 'none'; suggestMode = false; },
+      "Ctrl-F3": function(instance) { findClick(''); }
+    }
+
 
 /*
     setValue: code,
@@ -288,7 +270,6 @@ function addCodeToTab(filesOpen, code) {
     tabMode: tabMode,
     autoMatchParens: autoMatchParens,
     basefiles: ['prod_base_c21cb4dde2c20e8f098b71afff0368db.js'],
-
     iframeClass: null,
     passDelay: 200,
     passTime: 50,
@@ -301,15 +282,8 @@ function addCodeToTab(filesOpen, code) {
   });
   codeEditor[filesOpen].setValue(code);
 
-  // codeEditor onload
-  interval = window.setInterval(function() {
-    if (typeof codeEditor[filesOpen].editor != 'undefined') {
-      codeEditor[filesOpen].grabKeys(codeEditorGrabKeys, codeEditorGrabKeysFilter);
-      codeEditor[filesOpen].focus();
-      window.clearInterval(interval);
-    }
-  }, 500);
-  
+  CodeMirror.commands.save = saveClick;
+
   tb.items.get('insert').enable();
   tb.items.get('search').enable();
   tb.items.get('save').enable();
