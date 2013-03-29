@@ -323,3 +323,9 @@ div.x-tab-strip-wrap .add-tab a span.x-tab-strip-inner {
 .suggestItem .suggestItemSearched {
   font-weight: bold;
 }
+
+/* Codemirror */
+.CodeMirror {
+  height: 100%;
+  width: 100%;
+}

@@ -257,6 +257,7 @@ function addCodeToTab(filesOpen, code) {
     case 'php':
     default:
       codemirrorMode: 'php';
+      //codemirrorMode: 'application/x-httpd-php';
       //parserfile = ["parsexml.js", "parsecss.js", "tokenizejavascript.js", "parsejavascript.js", "../contrib/php/js/tokenizephp.js", "../contrib/php/js/parsephp.js",
       //  "../contrib/php/js/parsephphtmlmixed.js"];
       //stylesheet = ["codemirror/css/xmlcolors.css", "codemirror/css/jscolors.css", "codemirror/css/csscolors.css", "codemirror/contrib/php/css/phpcolors.css"];
@@ -266,34 +267,37 @@ function addCodeToTab(filesOpen, code) {
   var elem = 'inputfield' + filesOpen;
   //document.getElementById(elem).innerText = code;
   codeEditor[filesOpen] = new CodeMirror.fromTextArea(document.getElementById(elem), {
-    width: "100%",
-    height: "100%",
-    /*setValue: code,*/
-    /*parserfile: parserfile,
-    stylesheet: stylesheet,*/
-    mode: codemirrorMode,
+    mode: codemirrorMode, /*{name: codemirrorMode, json: true},*/
+    undoDepth: 50,
+    lineWrapping: true,
+    lineNumbers: showLineNumbers,
+    cursorActivity: onCodeChange,
+    indentUnit: 2
+
+/*
+    setValue: code,
+    parserfile: parserfile,
+    stylesheet: stylesheet,
     path: "codemirror/lib/",
     continuousScanning: 500,
-    undoDepth: 50,
     undoDelay: 800,
     disableSpellcheck: disableSpellcheck,
     textWrapping: true,
     readOnly: false,
     dumbTabs: false,
     tabMode: tabMode,
-    lineNumbers: showLineNumbers,
     autoMatchParens: autoMatchParens,
-    /*basefiles: ['prod_base_c21cb4dde2c20e8f098b71afff0368db.js'],*/
+    basefiles: ['prod_base_c21cb4dde2c20e8f098b71afff0368db.js'],
+
     iframeClass: null,
     passDelay: 200,
     passTime: 50,
     parserConfig: null,
     reindentOnLoad: false,
     activeTokens: null,
-    cursorActivity: onCodeChange,
-    indentUnit: 2,
     saveFunction: saveClick,
     onChange: null
+*/
   });
   codeEditor[filesOpen].setValue(code);
 
