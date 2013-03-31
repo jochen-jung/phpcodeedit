@@ -409,10 +409,12 @@ function searchClick(btn){
 function findClick(btn) {
   if (searchVals.search) {
     var actTab = parseInt(tabs.getActiveTab().id.substr(3, 3), 10);
-    var obj = codeEditor[actTab].getSearchCursor(searchVals.search, !searchVals.fromstart, !searchVals.casesensitive);
+    var startPos = null;
+    if (!searchVals.fromstart) startPos = codeEditor[actTab].getCursor();
+    var obj = codeEditor[actTab].getSearchCursor(searchVals.search, startPos, !searchVals.casesensitive);
     if (obj.findNext()) {
       if (searchVals.replace) { obj.replace(searchVals.replace); }
-      else { obj.select(); }
+      else { codeEditor[actTab].setSelection(obj.from(), obj.to()); }
       searchVals.fromstart = false;
     } else { Ext.Msg.alert('Search', 'Could not find "' + searchVals.search +'"'); }
   } else { Ext.Msg.alert('Search', 'No search string given.<br>Use "Search / Replace" first'); }
