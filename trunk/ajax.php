@@ -77,7 +77,7 @@ if ($_POST['a']) switch ($_POST['a']) {
       'Password has been resetted',
       'You asked us to reset your password on edit.orgapage.de.'."\n"
       .'The new password is: '. $newPw,
-      'From: knox@orgapage.de'."\r\n"
+      'From: webmaster@orgapage.de'."\r\n"
     );
     mysql_query('UPDATE user SET password = \''. sha1($newPw) .'\' WHERE email = \''. addslashes($_POST['email']) .'\'');
     $msg = 'Password has been resetted';
