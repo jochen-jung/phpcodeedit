@@ -422,11 +422,11 @@ function findClick(btn) {
 }
 
 function wikiClick(btn) {
-  window.open("http://code.google.com/p/phpcodeedit/w/list", "_blank", "");
+  window.open("https://github.com/JochenJung/phpcodeedit/wiki", "_blank", "");
 }
 
 function bugreportClick(btn) {
-  window.open("http://code.google.com/p/phpcodeedit/issues/list", "_blank", "");
+  window.open("https://github.com/JochenJung/phpcodeedit/issues", "_blank", "");
 }
 
 function validateHTMLClick(btn) {
