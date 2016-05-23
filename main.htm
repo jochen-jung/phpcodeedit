@@ -6,9 +6,9 @@
   <meta name="description" content="PHP Code Editor - a web based interface to edit your code" />
   <meta name="keywords" content="php, html, css, javascript, ajax, code, editor, ide, syntax highlighting, code completition, online ftp" />
   {{if $isSSL}}<link rel="shortcut icon" href="/edit.orgapage.de/favicon.ico" />{{/if}}
-  <link rel="stylesheet" type="text/css" href="http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/resources/css/ext-all.css" />
-  <script type="text/javascript" src="http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/adapter/ext/ext-base.js"></script>
-  <script type="text/javascript" src="http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/ext-all.js"></script>
+  <link rel="stylesheet" type="text/css" href="http{{if $isSSL}}s{{/if}}://extjs.cachefly.net/ext-3.2.1/resources/css/ext-all.css" />
+  <script type="text/javascript" src="http{{if $isSSL}}s{{/if}}://extjs.cachefly.net/ext-3.2.1/adapter/ext/ext-base.js"></script>
+  <script type="text/javascript" src="http{{if $isSSL}}s{{/if}}://extjs.cachefly.net/ext-3.2.1/ext-all.js"></script>
 
   <script src="codemirror/lib/codemirror.js"></script>
   <script src="codemirror/addon/search/searchcursor.js"></script>
@@ -116,7 +116,7 @@ function saveClick(btn){
 }
 
 Ext.onReady(function(){
-  Ext.BLANK_IMAGE_URL = 'http{{if $isSSL}}s{{/if}}://extjs-public.googlecode.com/svn/tags/extjs-3.2.1/release/resources/images/default/s.gif';
+  Ext.BLANK_IMAGE_URL = 'http{{if $isSSL}}s{{/if}}://extjs.cachefly.net/ext-3.2.1/resources/images/default/s.gif';
   //Ext.state.Manager.setProvider(new Ext.state.CookieProvider());
   Ext.QuickTips.init();
   {{$alertMsg}}
