@@ -2,10 +2,8 @@
 session_start();
 
 include_once('config.php');
-$link = mysql_connect($mysql_host, $mysql_user, $mysql_pass);
-if (!$link) die('Could not connect: ' . mysql_error());
-$db_selected = mysql_select_db($mysql_db, $link);
-if (!$db_selected) die ('Can\'t use '. $mysql_db .': ' . mysql_error());
+$link = mysqli_connect($mysql_host, $mysql_user, $mysql_pass, $mysql_db);
+if (!$link) die('Could not connect: ' . mysqli_error());
 
 // Don't allow changes to upper directories
 $_POST['path'] = str_replace('..', '', $_POST['path']);
@@ -16,9 +14,9 @@ $_FILES['file']['name'] = str_replace('..', '', $_FILES['file']['name']);
 function ftpConnect($ftpid) {
   global $success, $msg;
 
-  $res = mysql_query('SELECT id, server, user, password FROM ftp WHERE id = '. (int)$ftpid .' AND userid = '. (int)$_SESSION['userid']);
-  $row = mysql_fetch_array($res, MYSQL_ASSOC);
-  mysql_free_result($res);
+  $res = mysqli_query($link, 'SELECT id, server, user, password FROM ftp WHERE id = '. (int)$ftpid .' AND userid = '. (int)$_SESSION['userid']);
+  $row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+  mysqli_free_result($res);
 
   $conn_id = ftp_connect($row['server']);
   $login_result = ftp_login($conn_id, $row['user'], $row['password']);
@@ -38,33 +36,33 @@ echo '{';
 switch ($_GET['a']) {
   case 'getCommands':
     echo 'items: [';
-    $res = mysql_query('SELECT command FROM command
+    $res = mysqli_query($link, 'SELECT command FROM command
       WHERE lang = "'. addslashes(strtoupper($_GET['lang'])) .'"
       AND SUBSTRING(command, 1, '. (int)strlen($_GET['search']) .') = "'. addslashes($_GET['search']) .'"');
     $first = 1;
-    while ($row = mysql_fetch_array($res, MYSQL_ASSOC)) {
+    while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) {
       if ($first) $first = 0;
       else echo ',';
       echo '{name: "'. chop(addslashes(substr($row['command'], strlen($_GET['search']), strlen($row['command'])))) .'"}';
     }
     echo '],';
-    mysql_free_result($res);
+    mysqli_free_result($res);
   break;
 
   case 'getFTPServer':
-    $res = mysql_query('SELECT id, server, user, password FROM ftp WHERE id = '. (int)$_GET['id'] .' AND userid = '. (int)$_SESSION['userid']);
-    while ($row = mysql_fetch_array($res, MYSQL_ASSOC)) {
+    $res = mysqli_query($link, 'SELECT id, server, user, password FROM ftp WHERE id = '. (int)$_GET['id'] .' AND userid = '. (int)$_SESSION['userid']);
+    while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) {
       echo '"id": "'. $row['id'] .'",
         "server": "'. $row['server'] .'",
         "user": "'. $row['user'] .'",
         "password": "'. $row['password'] .'",
         ';
     }
-    mysql_free_result($res);
+    mysqli_free_result($res);
   break;
 
   case 'deleteFTPServer':
-    mysql_query('DELETE FROM ftp WHERE id = '. (int)$_GET['id'] .' AND userid = '. (int)$_SESSION['userid']);
+    mysqli_query($link, 'DELETE FROM ftp WHERE id = '. (int)$_GET['id'] .' AND userid = '. (int)$_SESSION['userid']);
     $msg = 'Server has been deleted';
   break;
 }
@@ -79,7 +77,7 @@ if ($_POST['a']) switch ($_POST['a']) {
       .'The new password is: '. $newPw,
       'From: webmaster@orgapage.de'."\r\n"
     );
-    mysql_query('UPDATE user SET password = \''. sha1($newPw) .'\' WHERE email = \''. addslashes($_POST['email']) .'\'');
+    mysqli_query($link, 'UPDATE user SET password = \''. sha1($newPw) .'\' WHERE email = \''. addslashes($_POST['email']) .'\'');
     $msg = 'Password has been resetted';
   break;
 
@@ -206,7 +204,7 @@ if ($_POST['a']) switch ($_POST['a']) {
   case 'uploadFile':
     if ((int)$_SESSION['userid']) $file = '../edit-files/'. (int)$_SESSION['userid'] .'/'. $_FILES['file']['name'];
     else $file = 'tmp/'. $_FILES['file']['name'];
-    
+
     if (!$_POST['allowoverwrite'] and file_exists($file)) {
       unlink($_FILES['file']['tmp_name']);
       $success = false;
@@ -239,9 +237,9 @@ if ($_POST['a']) switch ($_POST['a']) {
         $ftp_id = (int)substr($_POST['path'], 0, strpos($_POST['path'], ':'));
         $ftp_path = substr($_POST['path'], strpos($_POST['path'], ':') + 1, strlen($_POST['path']));
 
-        $res = mysql_query('SELECT id, server, user, password FROM ftp WHERE id = '. (int)$ftp_id .' AND userid = '. (int)$_SESSION['userid']);
-        $row = mysql_fetch_array($res, MYSQL_ASSOC);
-        mysql_free_result($res);
+        $res = mysqli_query($link, 'SELECT id, server, user, password FROM ftp WHERE id = '. (int)$ftp_id .' AND userid = '. (int)$_SESSION['userid']);
+        $row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+        mysqli_free_result($res);
 
         $conn_id = ftp_connect($row['server']);
         $login_result = ftp_login($conn_id, $row['user'], $row['password']);
@@ -282,16 +280,16 @@ if ($_POST['a']) switch ($_POST['a']) {
       $msg = 'You need to be logged in create / edit FTP servers';
     } else {
       if ($_POST['ftp_id']) {
-        $res = mysql_query('SELECT userid FROM ftp WHERE id = '. (int)($_POST['ftp_id']));
+        $res = mysqli_query($link, 'SELECT userid FROM ftp WHERE id = '. (int)($_POST['ftp_id']));
         if (!$res) {
           $success = false;
           $msg = 'Server does not exist';
         } else {
-          $row = mysql_fetch_array($res, MYSQL_ASSOC);
-          mysql_free_result($res);
+          $row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+          mysqli_free_result($res);
 
           if ($_SESSION['userid'] == $row['userid']) {
-            mysql_query('UPDATE ftp SET server = "'. addslashes($_POST['ftp_server']) .'",
+            mysqli_query($link, 'UPDATE ftp SET server = "'. addslashes($_POST['ftp_server']) .'",
               user = "'. addslashes($_POST['ftp_user']) .'",
               password = "'. addslashes($_POST['ftp_password']) .'"
               WHERE id = "'. (int)($_POST['ftp_id']) .'"
@@ -303,13 +301,13 @@ if ($_POST['a']) switch ($_POST['a']) {
           }
         }
       } else {
-        mysql_query('INSERT INTO ftp SET server = "'. addslashes($_POST['ftp_server']) .'",
+        mysqli_query($link, 'INSERT INTO ftp SET server = "'. addslashes($_POST['ftp_server']) .'",
           user = "'. addslashes($_POST['ftp_user']) .'",
           password = "'. addslashes($_POST['ftp_password']) .'",
           userid = '. (int)$_SESSION['userid']
           );
         $msg = 'FTP has been created';
-        #echo mysql_error($link);
+        #echo mysqli_error($link);
       }
     }
   break;
@@ -317,5 +315,5 @@ if ($_POST['a']) switch ($_POST['a']) {
 
 echo '"success": "'. $success .'", "msg": "'. $msg .'"}';
 
-mysql_close($link);
+mysqli_close($link);
 ?>

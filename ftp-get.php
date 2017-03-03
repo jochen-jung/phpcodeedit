@@ -3,10 +3,8 @@ session_start();
 error_reporting(0);
 
 include_once('config.php');
-$link = mysql_connect($mysql_host, $mysql_user, $mysql_pass);
-if (!$link) die('Could not connect: ' . mysql_error());
-$db_selected = mysql_select_db($mysql_db, $link);
-if (!$db_selected) die ('Can\'t use '. $mysql_db .': ' . mysql_error());
+$link = mysqli_connect($mysql_host, $mysql_user, $mysql_pass, $mysql_db);
+if (!$link) die('Could not connect: ' . mysqli_error());
 
 function ftp_is_dir($dir) {
   global $conn_id;
@@ -20,23 +18,23 @@ function ftp_is_dir($dir) {
 
 if ($_POST['node'] == '/') {
   echo '[';
-  $res = mysql_query('SELECT id, server, user FROM ftp WHERE userid = '. (int)$_SESSION['userid']);
+  $res = mysqli_query($link, 'SELECT id, server, user FROM ftp WHERE userid = '. (int)$_SESSION['userid']);
   $first = true;
-  while ($row = mysql_fetch_array($res, MYSQL_ASSOC)) {
+  while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) {
     if ($first) $first = false;
     else echo ",";
     echo '{"text":"'. $row['user'] .'@'. $row['server'] .'","id":"'. $row['id'] .':/","cls":"folder"}';
   }
-  mysql_free_result($res);
+  mysqli_free_result($res);
   echo ']';
 
 } else {
   $ftp_id = (int)substr($_POST['node'], 0, strpos($_POST['node'], ':'));
   $ftp_path = substr($_POST['node'], strpos($_POST['node'], ':') + 1, strlen($_POST['node']));
 
-  $res = mysql_query('SELECT id, server, user, password FROM ftp WHERE id = '. (int)$ftp_id .' AND userid = '. (int)$_SESSION['userid']);
-  $row = mysql_fetch_array($res, MYSQL_ASSOC);
-  mysql_free_result($res);
+  $res = mysqli_query($link, 'SELECT id, server, user, password FROM ftp WHERE id = '. (int)$ftp_id .' AND userid = '. (int)$_SESSION['userid']);
+  $row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+  mysqli_free_result($res);
 
   $conn_id = ftp_connect($row['server']);
   $login_result = ftp_login($conn_id, $row['user'], $row['password']);

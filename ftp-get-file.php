@@ -2,17 +2,15 @@
 session_start();
 
 include_once('config.php');
-$link = mysql_connect($mysql_host, $mysql_user, $mysql_pass);
-if (!$link) die('Could not connect: ' . mysql_error());
-$db_selected = mysql_select_db($mysql_db, $link);
-if (!$db_selected) die ('Can\'t use '. $mysql_db .': ' . mysql_error());
+$link = mysqli_connect($mysql_host, $mysql_user, $mysql_pass, $mysql_db);
+if (!$link) die('Could not connect: ' . mysqli_error());
 
 $ftp_id = (int)substr($_GET['path'], 0, strpos($_GET['path'], ':'));
 $ftp_path = substr($_GET['path'], strpos($_GET['path'], ':') + 1, strlen($_GET['path']));
 
-$res = mysql_query('SELECT id, server, user, password FROM ftp WHERE id = '. (int)$ftp_id .' AND userid = '. (int)$_SESSION['userid']);
-$row = mysql_fetch_array($res, MYSQL_ASSOC);
-mysql_free_result($res);
+$res = mysqli_query($link, 'SELECT id, server, user, password FROM ftp WHERE id = '. (int)$ftp_id .' AND userid = '. (int)$_SESSION['userid']);
+$row = mysqli_fetch_array($res, MYSQLI_ASSOC);
+mysqli_free_result($res);
 
 $conn_id = ftp_connect($row['server']);
 $login_result = ftp_login($conn_id, $row['user'], $row['password']);
