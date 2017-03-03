@@ -423,7 +423,7 @@ Ext.onReady(function(){
             name: 'type', hiddenName: 'type', displayField: 'value', valueField: 'name',
             store: new Ext.data.JsonStore({
               fields: ['name', 'value'],
-              data: [{{foreach key=key item=val from=$hash_algos}}{name : '{{$val}}', value: '{{$val|capitalize:true}}'}{{if !$last}}, {{/if}}{{/foreach}}]
+              data: [{{foreach key=key item=val from=$hash_algos}}{name : '{{$val}}', value: '{{$val|@ucfirst}}'}{{if !$last}}, {{/if}}{{/foreach}}]
             }),
             listeners: {
               'select': function() {
