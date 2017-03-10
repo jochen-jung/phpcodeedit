@@ -8,5 +8,5 @@ else $hash = hash($_POST['type'], $_POST['plain']);
 echo '{
   "success":true,
   "hash":"'. $hash .'",
-}';
+}';;
 ?>
